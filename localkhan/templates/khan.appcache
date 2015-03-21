@@ -1,0 +1,10 @@
+CACHE MANIFEST
+# {{ hash }}
+
+CACHE:
+index.html
+{% for asset in assets %}{{asset}}
+{% endfor %}
+
+NETWORK:
+*
