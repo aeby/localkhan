@@ -5,6 +5,13 @@ localkhan
 localkhan is a tool to download and distribute
 Khan content for offline usage.
 
+Install
+```````
+
+.. code:: bash
+
+    $ pip install git+git://github.com/aeby/localkhan.git
+
 Run it
 ``````
 
@@ -14,11 +21,6 @@ Run it
      * Downloading topic structure and 345 media files
     $ localkhan serve
      * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)
-
-Links
-`````
-
-* `documentation <http://localkhan.github.io/khan/>`_
 
 """
 from setuptools import setup
