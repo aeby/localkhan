@@ -50,7 +50,7 @@ def main():
         app.run(host=args['--host'], port=args['--port'])
     else:
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        loader = KhanLoader(os.path.join(base_dir, 'static/khan'), 'static/khan', language=args['--lang'])
+        loader = KhanLoader(os.path.join(base_dir, 'static/khan'), '/static/khan', language=args['--lang'])
         try:
             loader.load(args['<topic>'])
         except KhanLoaderError as e:

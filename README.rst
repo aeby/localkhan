@@ -17,7 +17,11 @@ Run
 .. code:: bash
 
     $ localkhan get --lang=es early-math/cc-early-math-counting-topic
-     * Downloading topic structure and 345 media files
+      Downloading topics...
+      [################################] 1/1 - 00:02:52
+      Downloading media assets...
+      [##################              ] 44/78 - 00:11:13
+
     $ localkhan serve
      * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)
 

@@ -9,12 +9,18 @@
 
 import json
 
-import os
+from clint.textui import progress
 
+import re
+import os
 import requests
+from requests.exceptions import InvalidSchema
+
 
 KIND_VIDEO = 'Video'
 ASSET_FOLDER = 'assets'
+MEDIA_URL_RE = re.compile(
+    'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\.(?:png|gif|jpeg|jpg|svg)')
 
 
 class KhanLoaderError(Exception):
@@ -103,7 +109,7 @@ class KhanLoader(object):
         else:
             topics = [self.get_topic(t['slug']) for t in main_topic['children']]
 
-        for topic in topics:
+        for topic in progress.bar(topics):
             topic_data = self.get_base_data(topic)
             topic_data['tutorials'] = []
 
@@ -126,7 +132,7 @@ class KhanLoader(object):
                         video_url = self.get_video(tutorial_content['id'])['download_urls']['mp4']
                         # extract video file name from url
                         video_store[tutorial_content['id']] = self.base_url + '/' + video_url.split('/')[-1]
-                        assets.add(video_url)
+                        assets.add(video_url.replace('https://', 'http://'))
                     else:
                         exercise = self.get_exercise(tutorial_content['id'])
 
@@ -134,7 +140,14 @@ class KhanLoader(object):
 
                         for assessment_item in exercise['all_assessment_items']:
                             assessment = self.get_assessment_items(assessment_item['id'])
-                            exercise_store[tutorial_content['id']].append(assessment["item_data"])
+
+                            item_data = assessment["item_data"]
+                            for media_url in set(MEDIA_URL_RE.findall(item_data)):
+                                new_url = self.base_url + '/' + media_url.split('/')[-1]
+                                item_data = item_data.replace(media_url, new_url)
+                                assets.add(media_url.replace('https://', 'http://'))
+
+                            exercise_store[tutorial_content['id']].append(item_data)
 
                     tutorial_data['tutorial_contents'].append(tutorial_content_data)
 
@@ -156,14 +169,31 @@ class KhanLoader(object):
 
         return assets
 
+    def download_file(self, url):
+        local_filename = os.path.join(self.asset_path, url.split('/')[-1])
+        r = requests.get(url, stream=True)
+        with open(local_filename, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk:  # filter out keep-alive new chunks
+                    f.write(chunk)
+                    f.flush()
+        return local_filename
+
     def load(self, path):
+        print('Downloading topics...')
         assets = self.load_structure(path)
-        print('Download %d' % len(assets))
+
+        print('Downloading media assets...')
+        for media_file in progress.bar(assets):
+            try:
+                self.download_file(media_file)
+            except InvalidSchema as ins:
+                print "InvalidSchema error({0}): {1}".format(ins.errno, ins.strerror)
 
 
 def test():
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    loader = KhanLoader(os.path.join(base_dir, 'static/khan'), 'static/khan', language='es')
+    loader = KhanLoader(os.path.join(base_dir, 'static/khan'), '/static/khan', language='es')
     loader.load('early-math/cc-early-math-counting-topic/cc-early-math-counting')
 
 
