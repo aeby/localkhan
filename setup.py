@@ -1,42 +1,23 @@
-"""
-localkhan
----------
-
-localkhan is a tool to download and distribute
-Khan content for offline usage.
-
-Install
-```````
-
-.. code:: bash
-
-    $ pip install git+git://github.com/aeby/localkhan.git
-
-Run it
-``````
-
-.. code:: bash
-
-    $ localkhan get --lang=es early-math/cc-early-math-counting-topic
-     * Downloading topic structure and 345 media files
-    $ localkhan serve
-     * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)
-
-"""
-from setuptools import setup
-
+from setuptools import setup, find_packages
+from codecs import open
+from os import path
 import localkhan
+
+here = path.abspath(path.dirname(__file__))
+
+with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+    long_description = f.read()
 
 setup(
     name='localkhan',
     version=localkhan.__version__,
     url='http://github.com/aeby/localkhan/',
-    license='BSD',
+    license=localkhan.__license__,
     author='Reto Aebersold',
     author_email='aeby@substyle.ch',
     description='Download and distribute Khan content',
-    long_description=__doc__,
-    packages=['localkhan'],
+    long_description=long_description,
+    packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
     platforms='any',

@@ -11,8 +11,8 @@ Install
 
     $ pip install git+git://github.com/aeby/localkhan.git
 
-Run it
-``````
+Run
+```
 
 .. code:: bash
 
@@ -21,3 +21,20 @@ Run it
     $ localkhan serve
      * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)
 
+Help
+````
+
+.. code:: bash
+
+    Usage:
+      localkhan get [--lang=<code>] <topic>
+      localkhan serve [--host=<ipaddr>] [--port=<number>]
+      localkhan -h | --help
+      localkhan --version
+
+    Options:
+      --lang=<code>    Language code [default: en].
+      --host=<ip>      IP [default: 0.0.0.0].
+      --port=<number>  Port number [default: 5000].
+      -h --help        Show this screen.
+      --version        Show version.

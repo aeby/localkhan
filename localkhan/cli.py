@@ -8,12 +8,11 @@ Usage:
   localkhan --version
 
 Options:
-  -h --help        Show this screen.
-  --version        Show version.
   --lang=<code>    Language code [default: en].
   --host=<ip>      IP [default: 0.0.0.0].
   --port=<number>  Port number [default: 5000].
-
+  -h --help        Show this screen.
+  --version        Show version.
 """
 
 from docopt import docopt
