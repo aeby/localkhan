@@ -25,6 +25,8 @@ def path_checksum(path):
     Recursively calculates a checksum representing the contents of all files
     found in directory path.
 
+    :param path: directory
+    :return: checksum
     """
 
     def _update_checksum(existing_checksum, dir_name, file_names):

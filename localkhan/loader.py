@@ -17,6 +17,7 @@ import requests
 from requests.exceptions import InvalidSchema
 
 
+MAX_CONNECTION_RETRIES = 5
 KIND_VIDEO = 'Video'
 ASSET_FOLDER = 'assets'
 MEDIA_URL_RE = re.compile(
@@ -43,15 +44,20 @@ class KhanLoader(object):
         self.asset_url = base_url + '/' + ASSET_FOLDER
         self.asset_path = os.path.join(base_path, ASSET_FOLDER)
 
+        # setup session and connection retries
+        adapter = requests.adapters.HTTPAdapter(max_retries=MAX_CONNECTION_RETRIES)
+        self.session = requests.Session()
+        self.session.mount('http://', adapter)
+
         # create assets dir
         if not os.path.exists(self.asset_path):
             os.makedirs(self.asset_path)
 
     def get_resource(self, path):
         url = self.api_url + path
-        response = requests.get(url)
+        response = self.session.get(url)
         if response.status_code != 200:
-            raise KhanLoaderError('Unable to load resource: {0}'.format(response.text))
+            raise KhanLoaderError('Unable to load resource at {0}: {1}'.format(path, response.text))
         return json.loads(response.text)
 
     def get_topic(self, name):
@@ -77,7 +83,7 @@ class KhanLoader(object):
     def path_segments(path):
         return [path for path in path.split('/') if len(path) > 0]
 
-    def load_structure(self, path):
+    def _load_structure(self, path):
         """
         Download topic structure. For a path with 2 or 3 segments the topics and tutorials are filtered by those
         segment names. Eg. "early-math/cc-early-math-counting-topic/cc-early-math-counting" will just load the
@@ -107,7 +113,7 @@ class KhanLoader(object):
         if len(path_structure) > 1:
             topics = [self.get_topic(path_structure[1])]
         else:
-            topics = [self.get_topic(t['slug']) for t in main_topic['children']]
+            topics = [self.get_topic(t['node_slug']) for t in main_topic['children']]
 
         for topic in progress.bar(topics):
             topic_data = self.get_base_data(topic)
@@ -117,9 +123,10 @@ class KhanLoader(object):
             if len(path_structure) > 2:
                 tutorials = [self.get_topic(path_structure[2])]
             else:
-                tutorials = [self.get_topic(t['slug']) for t in topic['children']]
+                tutorials = [self.get_topic(t['node_slug']) for t in topic['children']]
 
             for tutorial in tutorials:
+                tutorial_data = self.get_base_data(tutorial)
                 tutorial_data = self.get_base_data(tutorial)
                 tutorial_data['tutorial_contents'] = []
 
@@ -169,26 +176,31 @@ class KhanLoader(object):
 
         return assets
 
-    def download_file(self, url):
+    def _download_file(self, url):
         local_filename = os.path.join(self.asset_path, url.split('/')[-1])
-        r = requests.get(url, stream=True)
+        r = self.session.get(url, stream=True)
+        if r.status_code != 200:
+            print('Unable to load resource at {0}: {1}'.format(url, r.content))
+            return
         with open(local_filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:  # filter out keep-alive new chunks
                     f.write(chunk)
                     f.flush()
-        return local_filename
+        return f
 
     def load(self, path):
         print('Downloading topics...')
-        assets = self.load_structure(path)
+        assets = self._load_structure(path)
 
         print('Downloading media assets...')
         for media_file in progress.bar(assets):
             try:
-                self.download_file(media_file)
+                self._download_file(media_file)
             except InvalidSchema as ins:
                 print "InvalidSchema error({0}): {1}".format(ins.errno, ins.strerror)
+
+        self.session.close()
 
 
 def test():
