@@ -19,6 +19,8 @@ from requests.exceptions import InvalidSchema
 
 MAX_CONNECTION_RETRIES = 5
 KIND_VIDEO = 'Video'
+TYPE_VIDEO = 'v'
+TYPE_EXERCISE = 'e'
 ASSET_FOLDER = 'assets'
 MEDIA_URL_RE = re.compile(
     'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\.(?:png|gif|jpeg|jpg|svg)')
@@ -73,11 +75,17 @@ class KhanLoader(object):
         return self.get_resource('assessment_items/' + name)
 
     @staticmethod
-    def get_base_data(topic):
-        return {
-            'title': topic['translated_title'],
-            'slug': topic['node_slug']
+    def get_base_data(topic, use_id=False):
+        base_data = {
+            'title': topic['translated_title']
         }
+        if use_id:
+            base_data['id'] = topic['id']
+        else:
+            base_data['slug'] = topic['node_slug']
+
+        return base_data
+
 
     @staticmethod
     def path_segments(path):
@@ -133,13 +141,14 @@ class KhanLoader(object):
                 tutorial_contents = self.get_topic(tutorial_data['slug'])
 
                 for tutorial_content in tutorial_contents['children']:
-                    tutorial_content_data = self.get_base_data(tutorial_content)
+                    tutorial_content_data = self.get_base_data(tutorial_content, use_id=True)
 
                     if tutorial_content['kind'] == KIND_VIDEO:
                         video_url = self.get_video(tutorial_content['id'])['download_urls']['mp4']
                         # extract video file name from url
-                        video_store[tutorial_content['id']] = self.base_url + '/' + video_url.split('/')[-1]
+                        video_store[tutorial_content['id']] = self.asset_url + '/' + video_url.split('/')[-1]
                         assets.add(video_url.replace('https://', 'http://'))
+                        tutorial_content_data['type'] = TYPE_VIDEO
                     else:
                         exercise = self.get_exercise(tutorial_content['id'])
 
@@ -150,11 +159,13 @@ class KhanLoader(object):
 
                             item_data = assessment["item_data"]
                             for media_url in set(MEDIA_URL_RE.findall(item_data)):
-                                new_url = self.base_url + '/' + media_url.split('/')[-1]
+                                new_url = self.asset_url + '/' + media_url.split('/')[-1]
                                 item_data = item_data.replace(media_url, new_url)
                                 assets.add(media_url.replace('https://', 'http://'))
 
                             exercise_store[tutorial_content['id']].append(item_data)
+
+                        tutorial_content_data['type'] = TYPE_EXERCISE
 
                     tutorial_data['tutorial_contents'].append(tutorial_content_data)
 
@@ -184,7 +195,7 @@ class KhanLoader(object):
             return
         with open(local_filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024):
-                if chunk:  # filter out keep-alive new chunks
+                if chunk:  # filter keep-alive new chunks
                     f.write(chunk)
                     f.flush()
         return f

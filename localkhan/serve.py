@@ -65,7 +65,7 @@ def manifest():
         'static/cc-early-math-add-sub-topic-data/ced0ad2c1b9a3a3471e6adedd6c05ac85abb80f4.png'
     ]
 
-    response = make_response(render_template('khan.appcache', assets=assets,
+    response = make_response(render_template('lkhan.appcache', assets=assets,
                                              hash=path_checksum(app.static_folder)))
     response.headers['Content-Type'] = 'text/cache-manifest'
     return response
