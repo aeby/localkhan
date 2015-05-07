@@ -12,3 +12,8 @@ __version__ = '0.5.0'
 __author__ = 'Reto Aebersold'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2015 Reto Aebersold'
+
+
+EX_OK = 0
+EX_USAGE = 64
+EX_UNAVAILABLE = 69

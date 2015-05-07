@@ -15,14 +15,15 @@ Options:
   --version        Show version.
 """
 
+import sys
+
 from docopt import docopt
 from schema import Schema, And, Use, SchemaError, Or
 
 import os
-
-from . import __version__
-from .loader import KhanLoader, KhanLoaderError
-from .serve import app
+from localkhan import __version__, EX_USAGE, EX_UNAVAILABLE, EX_OK
+from localkhan.loader import KhanLoader, KhanLoaderError
+from localkhan.serve import app
 
 
 def main():
@@ -44,7 +45,8 @@ def main():
     try:
         args = schema.validate(args)
     except SchemaError as e:
-        exit(e)
+        print e.message
+        return EX_USAGE
 
     if args['serve']:
         app.run(host=args['--host'], port=args['--port'])
@@ -52,10 +54,13 @@ def main():
         base_dir = os.path.dirname(os.path.abspath(__file__))
         loader = KhanLoader(os.path.join(base_dir, 'static/khan'), '/static/khan', language=args['--lang'])
         try:
-            loader.load(args['<topic>'])
+            return loader.load(args['<topic>'])
         except KhanLoaderError as e:
-            exit(e)
+            print e.message
+            return EX_UNAVAILABLE
+
+    return EX_OK
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
