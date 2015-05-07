@@ -6,10 +6,14 @@
     :copyright: (c) 2015 by Reto Aebersold.
     :license: MIT, see LICENSE for more details.
 """
-
+import hashlib
 import json
+from contextlib import closing
+import time
 
 from clint.textui import progress
+
+from localkhan import EX_OK
 
 import re
 import os
@@ -18,12 +22,14 @@ from requests.exceptions import InvalidSchema
 
 
 MAX_CONNECTION_RETRIES = 5
+MAX_DOWNLOAD_RETRIES = 3
+DOWNLOAD_RETRY_DELAY = 10  # seconds
 KIND_VIDEO = 'Video'
 TYPE_VIDEO = 'v'
 TYPE_EXERCISE = 'e'
 ASSET_FOLDER = 'assets'
 MEDIA_URL_RE = re.compile(
-    'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\.(?:png|gif|jpeg|jpg|svg)')
+    'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\.(?:png|gif|jpeg|jpg|svg)')
 
 
 class KhanLoaderError(Exception):
@@ -86,7 +92,6 @@ class KhanLoader(object):
 
         return base_data
 
-
     @staticmethod
     def path_segments(path):
         return [path for path in path.split('/') if len(path) > 0]
@@ -134,7 +139,6 @@ class KhanLoader(object):
                 tutorials = [self.get_topic(t['node_slug']) for t in topic['children']]
 
             for tutorial in tutorials:
-                tutorial_data = self.get_base_data(tutorial)
                 tutorial_data = self.get_base_data(tutorial)
                 tutorial_data['tutorial_contents'] = []
 
@@ -187,18 +191,55 @@ class KhanLoader(object):
 
         return assets
 
+    @staticmethod
+    def _generate_file_md5(filename, block_size=2 ** 20):
+        m = hashlib.md5()
+        with open(filename, "rb") as f:
+            while True:
+                buf = f.read(block_size)
+                if not buf:
+                    break
+                m.update(buf)
+        return m.hexdigest()
+
     def _download_file(self, url):
+        """
+        Download given resource if not present in ASSET_FOLDER or md5sum in ETAG doesn't match.
+        Retry to download MAX_DOWNLOAD_RETRIES times with a delay
+        of DOWNLOAD_RETRY_DELAY seconds if status code is not 200.
+
+        :param url:
+        :return: file if any
+        """
         local_filename = os.path.join(self.asset_path, url.split('/')[-1])
-        r = self.session.get(url, stream=True)
-        if r.status_code != 200:
-            print('Unable to load resource at {0}: {1}'.format(url, r.content))
-            return
-        with open(local_filename, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=1024):
-                if chunk:  # filter keep-alive new chunks
-                    f.write(chunk)
-                    f.flush()
-        return f
+
+        # check if file already available and md5sum matches
+        if os.path.isfile(local_filename):
+            response = requests.head(url)
+            if response.status_code == 200 and 'etag' in response.headers:
+                md5 = self._generate_file_md5(local_filename)
+                if response.headers['etag'].replace('"', '') == md5:
+                    return
+
+        retry = 0
+
+        while retry < MAX_DOWNLOAD_RETRIES:
+            with closing(self.session.get(url, stream=True)) as r:
+
+                if r.status_code != 200:
+                    print('Retry {0}'.format(url))
+                    retry += 1
+                    if retry == MAX_DOWNLOAD_RETRIES:
+                        print('Unable to load resource at {0}: {1}'.format(url, r.content))
+                        break
+                    time.sleep(DOWNLOAD_RETRY_DELAY)
+                    continue
+                with open(local_filename, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=1024):
+                        if chunk:  # filter keep-alive new chunks
+                            f.write(chunk)
+                            f.flush()
+                    return
 
     def load(self, path):
         print('Downloading topics...')
@@ -213,11 +254,13 @@ class KhanLoader(object):
 
         self.session.close()
 
+        return EX_OK
+
 
 def test():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     loader = KhanLoader(os.path.join(base_dir, 'static/khan'), '/static/khan', language='es')
-    loader.load('early-math/cc-early-math-counting-topic/cc-early-math-counting')
+    loader.load('early-math/cc-early-math-counting-topic')
 
 
 if __name__ == "__main__":
