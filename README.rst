@@ -20,7 +20,7 @@ Run
       Downloading topics...
       [################################] 1/1 - 00:02:52
       Downloading media assets...
-      [##################              ] 44/78 - 00:11:13
+      [###                             ] 50/466 - 00:16:44
 
     $ localkhan serve
      * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)
