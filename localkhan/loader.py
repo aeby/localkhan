@@ -167,7 +167,7 @@ class KhanLoader(object):
                                 item_data = item_data.replace(media_url, new_url)
                                 assets.add(media_url.replace('https://', 'http://'))
 
-                            exercise_store[tutorial_content['id']].append(item_data)
+                            exercise_store[tutorial_content['id']].append(json.loads(item_data))
 
                         tutorial_content_data['type'] = TYPE_EXERCISE
 
