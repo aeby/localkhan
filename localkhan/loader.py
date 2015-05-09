@@ -81,16 +81,11 @@ class KhanLoader(object):
         return self.get_resource('assessment_items/' + name)
 
     @staticmethod
-    def get_base_data(topic, use_id=False):
-        base_data = {
-            'title': topic['translated_title']
+    def get_base_data(topic):
+        return {
+            'title': topic['translated_title'],
+            'slug': topic['node_slug']
         }
-        if use_id:
-            base_data['id'] = topic['id']
-        else:
-            base_data['slug'] = topic['node_slug']
-
-        return base_data
 
     @staticmethod
     def path_segments(path):
@@ -145,18 +140,19 @@ class KhanLoader(object):
                 tutorial_contents = self.get_topic(tutorial_data['slug'])
 
                 for tutorial_content in tutorial_contents['children']:
-                    tutorial_content_data = self.get_base_data(tutorial_content, use_id=True)
+                    tutorial_content_data = self.get_base_data(tutorial_content)
+                    tutorial_content_data['id'] = tutorial_content['id']
 
                     if tutorial_content['kind'] == KIND_VIDEO:
-                        video_url = self.get_video(tutorial_content['id'])['download_urls']['mp4']
+                        video_url = self.get_video(tutorial_content_data['id'])['download_urls']['mp4']
                         # extract video file name from url
-                        video_store[tutorial_content['id']] = self.asset_url + '/' + video_url.split('/')[-1]
+                        video_store[tutorial_content_data['id']] = self.asset_url + '/' + video_url.split('/')[-1]
                         assets.add(video_url.replace('https://', 'http://'))
                         tutorial_content_data['type'] = TYPE_VIDEO
                     else:
-                        exercise = self.get_exercise(tutorial_content['id'])
+                        exercise = self.get_exercise(tutorial_content_data['id'])
 
-                        exercise_store[tutorial_content['id']] = []
+                        exercise_store[tutorial_content_data['id']] = []
 
                         for assessment_item in exercise['all_assessment_items']:
                             assessment = self.get_assessment_items(assessment_item['id'])
@@ -167,7 +163,7 @@ class KhanLoader(object):
                                 item_data = item_data.replace(media_url, new_url)
                                 assets.add(media_url.replace('https://', 'http://'))
 
-                            exercise_store[tutorial_content['id']].append(json.loads(item_data))
+                            exercise_store[tutorial_content_data['id']].append(json.loads(item_data))
 
                         tutorial_content_data['type'] = TYPE_EXERCISE
 
