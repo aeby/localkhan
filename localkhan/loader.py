@@ -6,6 +6,7 @@
     :copyright: (c) 2015 by Reto Aebersold.
     :license: MIT, see LICENSE for more details.
 """
+from __future__ import print_function
 import hashlib
 import json
 from contextlib import closing
@@ -14,7 +15,6 @@ import time
 from clint.textui import progress
 
 from localkhan import EX_OK
-
 import re
 import os
 import requests
@@ -246,7 +246,7 @@ class KhanLoader(object):
             try:
                 self._download_file(media_file)
             except InvalidSchema as ins:
-                print "InvalidSchema error({0}): {1}".format(ins.errno, ins.strerror)
+                print("InvalidSchema error({0}): {1}".format(ins.errno, ins.strerror))
 
         self.session.close()
 

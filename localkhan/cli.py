@@ -14,8 +14,11 @@ Options:
   -h --help        Show this screen.
   --version        Show version.
 """
+from __future__ import print_function
 
 import sys
+import netifaces
+import logging
 
 from docopt import docopt
 from schema import Schema, And, Use, SchemaError, Or
@@ -24,6 +27,13 @@ import os
 from localkhan import __version__, EX_USAGE, EX_UNAVAILABLE, EX_OK
 from localkhan.loader import KhanLoader, KhanLoaderError
 from localkhan.serve import app
+
+
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
+# We want only IPv4, for now at least
+PROTO = netifaces.AF_INET
 
 
 def main():
@@ -45,10 +55,30 @@ def main():
     try:
         args = schema.validate(args)
     except SchemaError as e:
-        print e.message
+        print(e.message)
         return EX_USAGE
 
     if args['serve']:
+        # Print connect info. Get IP of interface of default gateway if host IP is 0.0.0.0
+        host_ip = args['--host']
+        if host_ip == '0.0.0.0':
+            interface = netifaces.gateways()['default'][PROTO][1]
+            for if_address in netifaces.ifaddresses(interface)[PROTO]:
+                host_ip = if_address.get('addr', None)
+
+        if host_ip == '0.0.0.0':
+            connect_info = "Warning: Unable to determine your external reachable IP address\n" \
+                           "Running on http://{0}:{1}".format(host_ip, args['--port'])
+        else:
+            connect_info = "Visit http://{0}:{1} on the devices to be synchronized.".format(host_ip, args['--port'])
+
+        connect_info_sep = '*' * len(max(connect_info.split('\n')))
+
+        print(connect_info_sep)
+        print(connect_info)
+        print(connect_info_sep)
+        print('\n(Press CTRL+C to quit)')
+
         app.run(host=args['--host'], port=args['--port'])
     else:
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -56,7 +86,7 @@ def main():
         try:
             return loader.load(args['<topic>'])
         except KhanLoaderError as e:
-            print e.message
+            print(e.message)
             return EX_UNAVAILABLE
 
     return EX_OK

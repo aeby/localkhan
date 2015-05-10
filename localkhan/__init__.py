@@ -8,7 +8,7 @@
 """
 
 __title__ = 'localkhan'
-__version__ = '0.5.0'
+__version__ = '0.5.1'
 __author__ = 'Reto Aebersold'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2015 Reto Aebersold'

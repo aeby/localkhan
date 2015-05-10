@@ -26,7 +26,8 @@ setup(
         'docopt>=0.5.0',
         'schema>=0.3.0',
         'clint>=0.4.0',
-        'Flask>=0.10.0'
+        'Flask>=0.10.0',
+        'netifaces>=0.10.4'
     ],
     classifiers=[
         'Development Status :: 4 - Beta',

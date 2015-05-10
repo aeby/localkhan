@@ -7,12 +7,11 @@
     :copyright: (c) 2015 by Reto Aebersold.
     :license: MIT, see LICENSE for more details.
 """
-
+from __future__ import print_function
 import hashlib
 
 from os.path import normpath, walk, isdir, isfile, dirname, basename, \
     exists as path_exists, join as path_join
-
 from flask import Flask
 from flask import render_template, make_response
 
