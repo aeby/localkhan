@@ -67,10 +67,10 @@ def main():
                 host_ip = if_address.get('addr', None)
 
         if host_ip == '0.0.0.0':
-            connect_info = "Warning: Unable to determine your external reachable IP address\n" \
-                           "Running on http://{0}:{1}".format(host_ip, args['--port'])
+            connect_info = 'Warning: Unable to determine your external reachable IP address\n' \
+                           'Running on http://{0}:{1}'.format(host_ip, args['--port'])
         else:
-            connect_info = "Visit http://{0}:{1} on the devices to be synchronized.".format(host_ip, args['--port'])
+            connect_info = 'Visit http://{0}:{1} on the devices to be synchronized.'.format(host_ip, args['--port'])
 
         connect_info_sep = '*' * len(max(connect_info.split('\n')))
 

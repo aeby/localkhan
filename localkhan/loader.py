@@ -157,7 +157,7 @@ class KhanLoader(object):
                         for assessment_item in exercise['all_assessment_items']:
                             assessment = self.get_assessment_items(assessment_item['id'])
 
-                            item_data = assessment["item_data"]
+                            item_data = assessment['item_data']
                             for media_url in set(MEDIA_URL_RE.findall(item_data)):
                                 new_url = self.asset_url + '/' + media_url.split('/')[-1]
                                 item_data = item_data.replace(media_url, new_url)
@@ -246,7 +246,7 @@ class KhanLoader(object):
             try:
                 self._download_file(media_file)
             except InvalidSchema as ins:
-                print("InvalidSchema error({0}): {1}".format(ins.errno, ins.strerror))
+                print('InvalidSchema error({0}): {1}'.format(ins.errno, ins.strerror))
 
         self.session.close()
 
@@ -259,5 +259,5 @@ def test():
     loader.load('early-math/cc-early-math-counting-topic')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     test()
