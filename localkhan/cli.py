@@ -77,7 +77,7 @@ def main():
         print(connect_info_sep)
         print(connect_info)
         print(connect_info_sep)
-        print('\n(Press CTRL+C to quit)')
+        print('(Press CTRL+C to quit)')
 
         app.run(host=args['--host'], port=args['--port'])
     else:

@@ -23,7 +23,11 @@ Run
       [###                             ] 50/466 - 00:16:44
 
     $ localkhan serve
-     * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)
+    ****************************************************************
+    Visit http://10.10.1.100:5000 on the devices to be synchronized.
+    ****************************************************************
+    (Press CTRL+C to quit)
+
 
 Help
 ````
