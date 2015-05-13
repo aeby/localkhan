@@ -35,14 +35,22 @@ Help
 .. code:: bash
 
     Usage:
-      localkhan get [--lang=<code>] <topic>
-      localkhan serve [--host=<ipaddr>] [--port=<number>]
+      localkhan get [--base=<path>] [--media-only]  [--lang=<code>] <topic>
+      localkhan serve [--base=<path>] [--host=<ipaddr>] [--port=<number>]
+      localkhan clean [--base=<path>]
       localkhan -h | --help
       localkhan --version
+
+    Commands:
+      get - Download topic structure and media assets
+      serve - Serve the content with a simple exercise viewer
+      clean -  Clean all downloaded content
 
     Options:
       --lang=<code>    Language code [default: en].
       --host=<ip>      IP [default: 0.0.0.0].
       --port=<number>  Port number [default: 5000].
+      --base=<path>    Download content to this directory [default: ~/.lkhan]
+      --media-only     Download only media assets only. Requires a downloaded topic structure.
       -h --help        Show this screen.
       --version        Show version.

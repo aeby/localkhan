@@ -2,20 +2,28 @@
 """Local Khan content.
 
 Usage:
-  localkhan get [--lang=<code>] <topic>
-  localkhan serve [--host=<ipaddr>] [--port=<number>]
+  localkhan get [--base=<path>] [--media-only]  [--lang=<code>] <topic>
+  localkhan serve [--base=<path>] [--host=<ipaddr>] [--port=<number>]
+  localkhan clean [--base=<path>]
   localkhan -h | --help
   localkhan --version
+
+Commands:
+  get - Download topic structure and media assets
+  serve - Serve the content with a simple exercise viewer
+  clean -  Clean all downloaded content
 
 Options:
   --lang=<code>    Language code [default: en].
   --host=<ip>      IP [default: 0.0.0.0].
   --port=<number>  Port number [default: 5000].
+  --base=<path>    Download content to this directory [default: ~/.lkhan]
+  --media-only     Download only media assets only. Requires a downloaded topic structure.
   -h --help        Show this screen.
   --version        Show version.
 """
 from __future__ import print_function
-
+import shutil
 import sys
 import netifaces
 import logging
@@ -34,6 +42,9 @@ log.setLevel(logging.ERROR)
 
 # We want only IPv4, for now at least
 PROTO = netifaces.AF_INET
+
+# Content prefix
+KHAN_CONTENT_STATIC = 'static/khan'
 
 
 def main():
@@ -58,6 +69,9 @@ def main():
         print(e.message)
         return EX_USAGE
 
+    base_dir = os.path.abspath(os.path.expanduser(args['--base']))
+    lkhan_dir = os.path.join(base_dir, KHAN_CONTENT_STATIC)
+
     if args['serve']:
         # Print connect info. Get IP of interface of default gateway if host IP is 0.0.0.0
         host_ip = args['--host']
@@ -80,9 +94,22 @@ def main():
         print('(Press CTRL+C to quit)')
 
         app.run(host=args['--host'], port=args['--port'])
+    elif args['clean']:
+        try:
+            shutil.rmtree(lkhan_dir)
+        except OSError:
+            print('Nothing to clean')
     else:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        loader = KhanLoader(os.path.join(base_dir, 'static/khan'), '/static/khan', language=args['--lang'])
+        # get / create base dir
+        if not os.path.exists(lkhan_dir):
+            try:
+                os.makedirs(lkhan_dir)
+            except OSError as oe:
+                print(oe)
+                sys.exit(oe.errno)
+
+        loader = KhanLoader(lkhan_dir, KHAN_CONTENT_STATIC, language=args['--lang'],
+                            media_only=args['--media-only'])
         try:
             return loader.load(args['<topic>'])
         except KhanLoaderError as e:

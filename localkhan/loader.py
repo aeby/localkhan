@@ -37,7 +37,7 @@ class KhanLoaderError(Exception):
 
 
 class KhanLoader(object):
-    def __init__(self, base_path, base_url, language='en'):
+    def __init__(self, base_path, base_url, language='en', media_only=False):
         """
         Interacts with the Khan API to download the relevant topic structure and the corresponding media assets.
 
@@ -48,16 +48,19 @@ class KhanLoader(object):
         """
         self.api_url = 'http://{0}.khanacademy.org/api/v1/'.format(language)
         self.base_url = base_url
+        if not self.base_url.startswith('/'):
+            self.base_url = '/' + self.base_url
         self.base_path = base_path
         self.asset_url = base_url + '/' + ASSET_FOLDER
         self.asset_path = os.path.join(base_path, ASSET_FOLDER)
+        self.media_only = media_only
 
         # setup session and connection retries
         adapter = requests.adapters.HTTPAdapter(max_retries=MAX_CONNECTION_RETRIES)
         self.session = requests.Session()
         self.session.mount('http://', adapter)
 
-        # create assets dir
+        # create asset dir
         if not os.path.exists(self.asset_path):
             os.makedirs(self.asset_path)
 
@@ -173,17 +176,14 @@ class KhanLoader(object):
 
             topic_structure['topics'].append(topic_data)
 
-        f = open(os.path.join(self.base_path, 'topics.json'), 'w')
-        json.dump(topic_structure, f)
-        f.close()
+        with open(os.path.join(self.base_path, 'topics.json'), 'w') as topics_file:
+            json.dump(topic_structure, topics_file)
 
-        f = open(os.path.join(self.base_path, 'videos.json'), 'w')
-        json.dump(video_store, f)
-        f.close()
+        with open(os.path.join(self.base_path, 'videos.json'), 'w') as videos_file:
+            json.dump(video_store, videos_file)
 
-        f = open(os.path.join(self.base_path, 'exercises.json'), 'w')
-        json.dump(exercise_store, f)
-        f.close()
+        with open(os.path.join(self.base_path, 'exercises.json'), 'w') as exercises_file:
+            json.dump(exercise_store, exercises_file)
 
         return assets
 
@@ -238,8 +238,17 @@ class KhanLoader(object):
                     return
 
     def load(self, path):
-        print('Downloading topics...')
-        assets = self._load_structure(path)
+        assets_file_path = os.path.join(self.base_path, 'assets.json')
+        if self.media_only:
+            with open(assets_file_path) as assets_file:
+                assets = json.load(assets_file)
+        else:
+            print('Downloading topics...')
+            assets = self._load_structure(path)
+
+            # save assets for later media download
+            with open(assets_file_path, 'w') as assets_file:
+                json.dump(list(assets), assets_file)
 
         print('Downloading media assets...')
         for media_file in progress.bar(assets):
@@ -256,7 +265,7 @@ class KhanLoader(object):
 def test():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     loader = KhanLoader(os.path.join(base_dir, 'static/khan'), '/static/khan', language='es')
-    loader.load('early-math/cc-early-math-counting-topic')
+    loader.load('early-math/cc-early-math-counting-topic/cc-early-math-counting')
 
 
 if __name__ == '__main__':
