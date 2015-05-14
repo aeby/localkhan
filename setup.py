@@ -22,12 +22,12 @@ setup(
     zip_safe=False,
     platforms='any',
     install_requires=[
-        'requests>=2.5.0',
-        'docopt>=0.5.0',
-        'schema>=0.3.0',
-        'clint>=0.4.0',
-        'Flask>=0.10.0',
-        'netifaces>=0.10.4'
+        'requests==2.7.0',
+        'docopt==0.6.2',
+        'schema==0.3.1',
+        'clint==0.4.1',
+        'Flask==0.10.1',
+        'netifaces==0.10.4'
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
