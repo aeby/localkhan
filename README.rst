@@ -1,3 +1,5 @@
+.. image:: https://travis-ci.org/aeby/localkhan.svg?branch=master
+    :target: https://travis-ci.org/aeby/localkhan
 localkhan
 ---------
 
