@@ -18,12 +18,13 @@ from localkhan import EX_OK
 import re
 import os
 import requests
-from requests.exceptions import InvalidSchema
+from requests.exceptions import InvalidSchema, ConnectionError, RequestException
 
 
 MAX_CONNECTION_RETRIES = 5
-MAX_DOWNLOAD_RETRIES = 3
-DOWNLOAD_RETRY_DELAY = 10  # seconds
+MAX_DOWNLOAD_RETRIES = 10
+DOWNLOAD_RETRY_DELAY = 30  # seconds
+DOWNLOAD_TIMEOUT = 30  # seconds
 KIND_VIDEO = 'Video'
 TYPE_VIDEO = 'v'
 TYPE_EXERCISE = 'e'
@@ -211,55 +212,68 @@ class KhanLoader(object):
 
         # check if file already available and md5sum matches
         if os.path.isfile(local_filename):
-            response = requests.head(url)
-            if response.status_code == 200 and 'etag' in response.headers:
-                md5 = self._generate_file_md5(local_filename)
-                if response.headers['etag'].replace('"', '') == md5:
-                    return
-
-        retry = 0
-
-        while retry < MAX_DOWNLOAD_RETRIES:
-            with closing(self.session.get(url, stream=True)) as r:
-
-                if r.status_code != 200:
+            retry = 0
+            while retry < MAX_DOWNLOAD_RETRIES:
+                try:
+                    response = requests.head(url)
+                    if response.status_code == 200:
+                        if 'etag' in response.headers:
+                            md5 = self._generate_file_md5(local_filename)
+                            if response.headers['etag'].replace('"', '') == md5:
+                                return
+                    else:
+                        raise RequestException(response=response)
+                except RequestException:
                     print('Retry {0}'.format(url))
                     retry += 1
-                    if retry == MAX_DOWNLOAD_RETRIES:
-                        print('Unable to load resource at {0}: {1}'.format(url, r.content))
-                        break
                     time.sleep(DOWNLOAD_RETRY_DELAY)
                     continue
-                with open(local_filename, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=1024):
-                        if chunk:  # filter keep-alive new chunks
-                            f.write(chunk)
-                            f.flush()
-                    return
 
-    def load(self, path):
-        assets_file_path = os.path.join(self.base_path, 'assets.json')
-        if self.media_only:
-            with open(assets_file_path) as assets_file:
-                assets = json.load(assets_file)
-        else:
-            print('Downloading topics...')
-            assets = self._load_structure(path)
-
-            # save assets for later media download
-            with open(assets_file_path, 'w') as assets_file:
-                json.dump(list(assets), assets_file)
-
-        print('Downloading media assets...')
-        for media_file in progress.bar(assets):
+        retry = 0
+        while retry < MAX_DOWNLOAD_RETRIES:
             try:
-                self._download_file(media_file)
-            except InvalidSchema as ins:
-                print('InvalidSchema error({0}): {1}'.format(ins.errno, ins.strerror))
+                with closing(self.session.get(url, stream=True, timeout=DOWNLOAD_TIMEOUT)) as r:
+                    if r.status_code != 200:
+                        raise RequestException(response=r)
+                    with open(local_filename, 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=1024):
+                            if chunk:  # filter keep-alive new chunks
+                                f.write(chunk)
+                                f.flush()
+                        return f
+            except RequestException:
+                print('Retry {0}'.format(url))
+                retry += 1
+                time.sleep(DOWNLOAD_RETRY_DELAY)
+                continue
 
-        self.session.close()
+        if retry == MAX_DOWNLOAD_RETRIES:
+            print('Unable to load resource at {0}: {1}'.format(url, r.content))
 
-        return EX_OK
+
+def load(self, path):
+    assets_file_path = os.path.join(self.base_path, 'assets.json')
+    if self.media_only:
+        with open(assets_file_path) as assets_file:
+            assets = json.load(assets_file)
+    else:
+        print('Downloading topics...')
+        assets = self._load_structure(path)
+
+        # save assets for later media download
+        with open(assets_file_path, 'w') as assets_file:
+            json.dump(list(assets), assets_file)
+
+    print('Downloading media assets...')
+    for media_file in progress.bar(assets):
+        try:
+            self._download_file(media_file)
+        except InvalidSchema as ins:
+            print('InvalidSchema error({0}): {1}'.format(ins.errno, ins.strerror))
+
+    self.session.close()
+
+    return EX_OK
 
 
 def test():
