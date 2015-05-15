@@ -139,7 +139,7 @@ class KhanLoader(object):
 
             for tutorial in tutorials:
                 tutorial_data = self.get_base_data(tutorial)
-                tutorial_data['tutorial_contents'] = []
+                tutorial_data['tutorialContents'] = []
 
                 tutorial_contents = self.get_topic(tutorial_data['slug'])
 
@@ -156,6 +156,10 @@ class KhanLoader(object):
                     else:
                         exercise = self.get_exercise(tutorial_content_data['id'])
 
+                        # filter legacy khan exercises
+                        if len(exercise['all_assessment_items']) == 0:
+                            continue
+
                         exercise_store[tutorial_content_data['id']] = []
 
                         for assessment_item in exercise['all_assessment_items']:
@@ -171,7 +175,7 @@ class KhanLoader(object):
 
                         tutorial_content_data['type'] = TYPE_EXERCISE
 
-                    tutorial_data['tutorial_contents'].append(tutorial_content_data)
+                    tutorial_data['tutorialContents'].append(tutorial_content_data)
 
                 topic_data['tutorials'].append(tutorial_data)
 
@@ -250,30 +254,29 @@ class KhanLoader(object):
         if retry == MAX_DOWNLOAD_RETRIES:
             print('Unable to load resource at {0}: {1}'.format(url, r.content))
 
+    def load(self, path):
+        assets_file_path = os.path.join(self.base_path, 'assets.json')
+        if self.media_only:
+            with open(assets_file_path) as assets_file:
+                assets = json.load(assets_file)
+        else:
+            print('Downloading topics...')
+            assets = self._load_structure(path)
 
-def load(self, path):
-    assets_file_path = os.path.join(self.base_path, 'assets.json')
-    if self.media_only:
-        with open(assets_file_path) as assets_file:
-            assets = json.load(assets_file)
-    else:
-        print('Downloading topics...')
-        assets = self._load_structure(path)
+            # save assets for later media download
+            with open(assets_file_path, 'w') as assets_file:
+                json.dump(list(assets), assets_file)
 
-        # save assets for later media download
-        with open(assets_file_path, 'w') as assets_file:
-            json.dump(list(assets), assets_file)
+        print('Downloading media assets...')
+        for media_file in progress.bar(assets):
+            try:
+                self._download_file(media_file)
+            except InvalidSchema as ins:
+                print('InvalidSchema error({0}): {1}'.format(ins.errno, ins.strerror))
 
-    print('Downloading media assets...')
-    for media_file in progress.bar(assets):
-        try:
-            self._download_file(media_file)
-        except InvalidSchema as ins:
-            print('InvalidSchema error({0}): {1}'.format(ins.errno, ins.strerror))
+        self.session.close()
 
-    self.session.close()
-
-    return EX_OK
+        return EX_OK
 
 
 def test():
