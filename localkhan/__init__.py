@@ -17,3 +17,6 @@ __copyright__ = 'Copyright 2015 Reto Aebersold'
 EX_OK = 0
 EX_USAGE = 64
 EX_UNAVAILABLE = 69
+
+# Content prefix
+KHAN_CONTENT_STATIC = 'static/khan'

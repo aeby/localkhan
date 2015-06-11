@@ -32,19 +32,15 @@ from docopt import docopt
 from schema import Schema, And, Use, SchemaError, Or
 
 import os
-from localkhan import __version__, EX_USAGE, EX_UNAVAILABLE, EX_OK
+from localkhan import __version__, EX_USAGE, EX_UNAVAILABLE, EX_OK, KHAN_CONTENT_STATIC
 from localkhan.loader import KhanLoader, KhanLoaderError
-from localkhan.serve import app
-
+from localkhan.serve import app, set_khan_base_path
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
 # We want only IPv4, for now at least
 PROTO = netifaces.AF_INET
-
-# Content prefix
-KHAN_CONTENT_STATIC = 'static/khan'
 
 
 def main():
@@ -93,6 +89,7 @@ def main():
         print(connect_info_sep)
         print('(Press CTRL+C to quit)')
 
+        set_khan_base_path(lkhan_dir)
         app.run(host=args['--host'], port=args['--port'])
     elif args['clean']:
         try:
