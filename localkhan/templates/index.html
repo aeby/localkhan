@@ -1,0 +1,48 @@
+<!doctype html> <html class="no-js" manifest="khan.appcache"> <head> <base href="/"> <meta charset="utf-8"> <title>lkhan</title> <meta name="description" content=""> <meta name="viewport" content="width=device-width"> <link rel="stylesheet" href="static/styles/vendor.a1321356.css"> <link rel="stylesheet" href="static/styles/main.341c07da.css"> <link rel="shortcut icon" href="static/images/favicon.ico"> <link rel="apple-touch-icon-precomposed" sizes="57x57" href="static/images/apple-touch-icon-57x57-precomposed.d97aee5a.png"> <link rel="apple-touch-icon-precomposed" sizes="72x72" href="static/images/apple-touch-icon-72x72-precomposed.57b34622.png"> <link rel="apple-touch-icon-precomposed" sizes="114x114" href="static/images/apple-touch-icon-114x114-precomposed.10c9cc08.png"> <link rel="apple-touch-icon-precomposed" sizes="144x144" href="static/images/apple-touch-icon-144x144-precomposed.70e90002.png">  <body ng-class="bgColor"> <div ui-view></div> <input class="hidden" id="progresstotal" type="hidden" value="{{ asset_count }}"> <div id="progresscnt" style="display: none; position: absolute; top:0; left: 0; right: 0; bottom: 0;
+     background-color: rgba(0,0,0,0.85); color: #F1F1F1; text-align: center"> <h1>Loading <span id="loadprogress"></span></h1> </div> <script>var appCache = window.applicationCache,
+    loaded = 0,
+    floor = Math.floor,
+    progress = document.getElementById("loadprogress"),
+    progressTotal = document.getElementById("progresstotal"),
+    progressCnt = document.getElementById("progresscnt"),
+    total = parseInt(progressTotal.value, 10) || 0;
+
+  function handleProgress() {
+    if (total <= loaded) {
+      progressCnt.style.display = 'none';
+    } else {
+      progressCnt.style.display = 'block';
+      loaded = loaded + 1;
+      progress.innerHTML = floor(100.0 / total * loaded) + '%';
+    }
+  }
+
+  window.addEventListener('load', function () {
+    appCache.addEventListener('updateready', function () {
+      if (appCache.status == appCache.UPDATEREADY) {
+        if (confirm('A new version of this site is available. Load it?')) {
+          window.location.reload();
+        } else {
+          progressCnt.style.display = 'none';
+        }
+      }
+    }, false);
+  }, false);
+
+  appCache.addEventListener('progress', handleProgress, false);</script> <script type="text/javascript">window.MathJax = {
+    config: "TeX-AMS_HTML-full.js"
+  };</script> <!-- mathjax can't be concatenated as long as the base path can't be set--> <script src="static/scripts/MathJax/MathJax.js"></script> <script src="static/scripts/vendor.c22d0129.js"></script> <script src="static/scripts/scripts.3b41f92b.js"></script> <script>var KhanUtil = {
+    debugLog: function () {
+    }, localeToFixed: function (num, precision) {
+      return num.toFixed(precision);
+    }
+  };
+  var Khan = {
+    Util: KhanUtil, error: function () {
+    }, query: {debug: ""}, imageBase: "/static/images", scratchpad: {
+      disable: function () {
+      }, enable: function () {
+      }
+    }
+  };
+  React.initializeTouchEvents(true);</script> <script src="static/scripts/pe/ng-perseus-build.e3675f5f.js"></script>
