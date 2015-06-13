@@ -26,6 +26,7 @@ MAX_DOWNLOAD_RETRIES = 10
 DOWNLOAD_RETRY_DELAY = 30  # seconds
 DOWNLOAD_TIMEOUT = 30  # seconds
 KIND_VIDEO = 'Video'
+KIND_EXERCISE = 'Exercise'
 TYPE_VIDEO = 'v'
 TYPE_EXERCISE = 'e'
 ASSET_FOLDER = 'assets'
@@ -153,7 +154,7 @@ class KhanLoader(object):
                         video_store[tutorial_content_data['id']] = self.asset_url + '/' + video_url.split('/')[-1]
                         assets.add(video_url.replace('https://', 'http://'))
                         tutorial_content_data['type'] = TYPE_VIDEO
-                    else:
+                    elif tutorial_content['kind'] == KIND_EXERCISE:
                         exercise = self.get_exercise(tutorial_content_data['id'])
 
                         # filter legacy khan exercises
@@ -223,12 +224,15 @@ class KhanLoader(object):
                     if response.status_code == 200:
                         if 'etag' in response.headers:
                             md5 = self._generate_file_md5(local_filename)
+                            # do nothing if md5 hash matches
                             if response.headers['etag'].replace('"', '') == md5:
                                 return
+                            else:
+                                break
                     else:
                         raise RequestException(response=response)
-                except RequestException:
-                    print('Retry {0}'.format(url))
+                except RequestException as re:
+                    print('Retry {0}: {1}'.format(url, re))
                     retry += 1
                     time.sleep(DOWNLOAD_RETRY_DELAY)
                     continue
@@ -244,9 +248,9 @@ class KhanLoader(object):
                             if chunk:  # filter keep-alive new chunks
                                 f.write(chunk)
                                 f.flush()
-                        return f
-            except RequestException:
-                print('Retry {0}'.format(url))
+                        return
+            except RequestException as re:
+                print('Retry {0}: {1}'.format(url, re))
                 retry += 1
                 time.sleep(DOWNLOAD_RETRY_DELAY)
                 continue
