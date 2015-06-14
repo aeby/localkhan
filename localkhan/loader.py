@@ -14,12 +14,11 @@ import time
 
 from clint.textui import progress
 
-from localkhan import EX_OK
+from localkhan import EX_OK, ASSET_FOLDER
 import re
 import os
 import requests
-from requests.exceptions import InvalidSchema, ConnectionError, RequestException
-
+from requests.exceptions import InvalidSchema, RequestException
 
 MAX_CONNECTION_RETRIES = 5
 MAX_DOWNLOAD_RETRIES = 10
@@ -29,7 +28,6 @@ KIND_VIDEO = 'Video'
 KIND_EXERCISE = 'Exercise'
 TYPE_VIDEO = 'v'
 TYPE_EXERCISE = 'e'
-ASSET_FOLDER = 'assets'
 MEDIA_URL_RE = re.compile(
     'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\.(?:png|gif|jpeg|jpg|svg)')
 
@@ -267,7 +265,7 @@ class KhanLoader(object):
             print('Downloading topics...')
             assets = self._load_structure(path)
 
-            # save assets for later media download
+            # save assets for later media download and cache manifest creation
             with open(assets_file_path, 'w') as assets_file:
                 json.dump(list(assets), assets_file)
 

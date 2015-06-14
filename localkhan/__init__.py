@@ -20,3 +20,4 @@ EX_UNAVAILABLE = 69
 
 # Content prefix
 KHAN_CONTENT_STATIC = 'static/khan'
+ASSET_FOLDER = 'assets'
