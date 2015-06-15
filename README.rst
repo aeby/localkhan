@@ -11,7 +11,7 @@ Install
 
 .. code:: bash
 
-    $ pip install git+git://github.com/aeby/localkhan.git
+    $ pip install localkhan
 
 Run
 ```
