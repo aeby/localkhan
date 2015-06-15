@@ -32,10 +32,16 @@ def get_manifest():
     :return: manifest file content
     """
     global LOCAL_KHAN_PATH
-    assets_file_path = os.path.join(LOCAL_KHAN_PATH, 'assets.json')
 
+    assets = []
+
+    content_structure = ['exercises.json', 'topics.json', 'videos.json']
+    assets.extend([os.path.join(KHAN_CONTENT_STATIC, a) for a in content_structure])
+
+    assets_file_path = os.path.join(LOCAL_KHAN_PATH, 'assets.json')
     with open(assets_file_path) as assets_file:
-        assets = [os.path.join(KHAN_CONTENT_STATIC, ASSET_FOLDER, url.split('/')[-1]) for url in json.load(assets_file)]
+        assets.extend(
+            [os.path.join(KHAN_CONTENT_STATIC, ASSET_FOLDER, url.split('/')[-1]) for url in json.load(assets_file)])
 
     return render_template('lkhan.appcache', assets=assets)
 
