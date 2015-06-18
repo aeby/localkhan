@@ -1,8 +1,0 @@
-include README.rst
-include LICENSE
-include MANIFEST.in
-recursive-include localkhan/static *
-recursive-include localkhan/templates *
-recursive-exclude localkhan/tests *
-recursive-exclude * __pycache__
-recursive-exclude * *.py[co]
