@@ -3,8 +3,8 @@
 localkhan
 ---------
 
-localkhan is a tool to download and distribute
-Khan content for offline usage.
+Download and distribute Khan Academy content to any devices.
+You can then use the Khan exercises and videos in a simple web-based client without a network connection.
 
 Install
 ```````
