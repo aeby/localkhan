@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="">
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="Download Khan Academy content and distribute it to your student devices">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>localkhan</title>
+
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link href='http://fonts.googleapis.com/css?family=Roboto:400,700' rel='stylesheet' type='text/css'>
+
+  <!-- build:css styles/main.css -->
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/lightbox.css">
+  <!-- endbuild -->
+
+</head>
+<body>
+<!--[if lt IE 10]>
+      <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+    <![endif]-->
+<div class="lead">
+  <div class="container">
+    <h1>localkhan - Khan Academy Offline</h1>
+
+    <h4>
+      Download and distribute Khan Academy content to student devices.<br>
+      Once synchronized, the exercises and videos work completely offline.<br>
+      Manage multiple students per device and track their progress.
+    </h4>
+
+    <div class="screenshots">
+
+      <a class="scr" href="images/classroom.png" data-lightbox="screenshots" data-title="Classroom">
+        <img src="images/classroom_s.png" alt="Classroom">
+      </a>
+
+      <a class="scr" href="images/topic.png" data-lightbox="screenshots" data-title="Topic">
+        <img src="images/topic_s.png" alt="Topic">
+      </a>
+
+      <a class="scr" href="images/exercise.png" data-lightbox="screenshots" data-title="Exercise">
+        <img src="images/exercise_s.png" alt="Exercise">
+      </a>
+
+      <a class="scr" href="images/admin.png" data-lightbox="screenshots" data-title="Admin">
+        <img src="images/admin_s.png" alt="Admin">
+      </a>
+
+      <a class="scr" href="images/activity.png" data-lightbox="screenshots" data-title="Activity">
+        <img src="images/activity_s.png" alt="Activity">
+      </a>
+
+    </div>
+
+    <a class="btn btn-success btn-lg" href="/demo/">View demo</a>
+
+    <div class="small">One tutorial only (~10MB). Password: 1234</div>
+  </div>
+</div>
+<div class="container">
+  <h2>4 simple steps to get started</h2>
+
+  <h3>1. Install localkhan</h3>
+  <pre>$ pip install localkhan</pre>
+  <h3>2. Download the desired Khan (sub-)topic</h3>
+  <pre>$ localkhan get early-math
+  Downloading topics...
+  [################################] 1/1 - 00:02:52
+  Downloading media assets...
+  [###                             ] 50/466 - 00:16:44
+  </pre>
+  <p>
+    You can identify the <span class="text-success">topic path</span> by visiting the desired topic on <a
+    href="https://www.khanacademy.org/">www.khanacademy.org</a>
+    and get the path after the subject name from the URL like this:
+  </p>
+  <ul>
+    <li>https://www.khanacademy.org/math/<span class="text-success">early-math</span></li>
+    <li>https://www.khanacademy.org/math/<span class="text-success">arithmetic/multiplication-division</span></li>
+  </ul>
+
+  <h3>3. Start local server</h3>
+  <pre>$ localkhan serve
+  ****************************************************************
+  Visit http://10.10.1.100:5000 on the devices to be synchronized.
+  ****************************************************************
+  (Press CTRL+C to quit)
+  </pre>
+  <h3>4. Visit your local server on your target device</h3>
+</div>
+<div class="footer">
+  <div class="container">
+    <h2>Docs</h2>
+    Visit the <a href="https://github.com/aeby/localkhan">GitHub Project</a>.
+
+
+    <h2>Contribute</h2>
+    Report any bugs or feature requests by creating an <a href="https://github.com/aeby/localkhan/issues">issue on
+    GitHub</a>.
+  </div>
+</div>
+<!-- build:js scripts/vendor.js -->
+<script src="scripts/jquery-1.11.0.min.js"></script>
+<script src="scripts/lightbox.min.js"></script>
+<!-- endbuild -->
+</body>
+</html>

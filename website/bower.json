@@ -1,0 +1,10 @@
+{
+  "name": "website",
+  "private": true,
+  "dependencies": {
+  },
+  "devDependencies": {
+    "chai": "~3.0.0",
+    "mocha": "~2.2.5"
+  }
+}
