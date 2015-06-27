@@ -10,20 +10,17 @@
 from __future__ import print_function
 import json
 
-from localkhan import KHAN_CONTENT_STATIC, ASSET_FOLDER
+from loader import TYPE_EXERCISE, TYPE_VIDEO, VIDEO_FORMAT
+from localkhan import CONFIG
 import os
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, request
 from flask import render_template, make_response
 
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
-LOCAL_KHAN_PATH = None
-
-
-def set_khan_base_path(path):
-    global LOCAL_KHAN_PATH
-    LOCAL_KHAN_PATH = path
+# Disable client cache
+CACHE_CONTROL = 'no-cache, max-age=0, must-revalidate'
 
 
 def get_manifest():
@@ -31,17 +28,20 @@ def get_manifest():
     Creates the cache manifest content based on the asset index.
     :return: manifest file content
     """
-    global LOCAL_KHAN_PATH
 
     assets = []
 
     content_structure = ['exercises.json', 'topics.json', 'videos.json']
-    assets.extend([os.path.join(KHAN_CONTENT_STATIC, a) for a in content_structure])
+    assets.extend([os.path.join(CONFIG['STATIC_CONTENT_DIR'], a) for a in content_structure])
 
-    assets_file_path = os.path.join(LOCAL_KHAN_PATH, 'assets.json')
-    with open(assets_file_path) as assets_file:
-        assets.extend(
-            [os.path.join(KHAN_CONTENT_STATIC, ASSET_FOLDER, url.split('/')[-1]) for url in json.load(assets_file)])
+    with open(os.path.join(CONFIG['BASE_DIR'], 'assets.json')) as assets_file:
+        for asset in json.load(assets_file):
+            if asset['type'] == TYPE_EXERCISE and 0:
+                assets.append(
+                    os.path.join(CONFIG['STATIC_CONTENT_DIR'], CONFIG['ASSET_DIR'], asset['uri'].split('/')[-1]))
+            elif asset['type'] == TYPE_VIDEO and 0:
+                assets.append(
+                    os.path.join(CONFIG['STATIC_CONTENT_DIR'], CONFIG['ASSET_DIR'], asset['uri'] + '.' + VIDEO_FORMAT))
 
     return render_template('lkhan.appcache', assets=assets)
 
@@ -62,7 +62,7 @@ def root(path):
             asset_count += 1
 
     response = make_response(render_template('index.html', asset_count=asset_count))
-    response.headers['Cache-Control'] = 'no-cache, max-age=0, must-revalidate'
+    response.headers['Cache-Control'] = CACHE_CONTROL
     return response
 
 
@@ -70,15 +70,25 @@ def root(path):
 def manifest():
     response = make_response(get_manifest())
     response.headers['Content-Type'] = 'text/cache-manifest'
-    response.headers['Cache-Control'] = 'no-cache, max-age=0, must-revalidate'
+    response.headers['Cache-Control'] = CACHE_CONTROL
     return response
 
 
 @app.route('/static/khan/<path:path>')
 def khan_content(path):
-    global LOCAL_KHAN_PATH
+    return send_from_directory(CONFIG['BASE_DIR'], path)
 
-    if LOCAL_KHAN_PATH is None:
-        raise RuntimeError('LOCAL_KHAN_PATH not set.')
 
-    return send_from_directory(LOCAL_KHAN_PATH, path)
+@app.route('/static/khan/exercises.json')
+def exercises():
+    exercises_file = os.path.join(CONFIG['BASE_DIR'], 'exercises.json')
+
+    with open(exercises_file) as khan_exercises:
+        ex = khan_exercises.read()
+
+    ex = ex.replace('{{host}}', request.host)
+
+    response = make_response(ex)
+    response.headers['Content-Type'] = 'application/json'
+    response.headers['Cache-Control'] = CACHE_CONTROL
+    return response

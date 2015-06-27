@@ -32,9 +32,9 @@ from docopt import docopt
 from schema import Schema, And, Use, SchemaError, Or
 
 import os
-from localkhan import __version__, EX_USAGE, EX_UNAVAILABLE, EX_OK, KHAN_CONTENT_STATIC
+from localkhan import __version__, EX_USAGE, EX_UNAVAILABLE, EX_OK, CONFIG
 from localkhan.loader import KhanLoader, KhanLoaderError
-from localkhan.serve import app, set_khan_base_path
+from localkhan.serve import app
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -65,9 +65,8 @@ def main():
         print(e.message)
         return EX_USAGE
 
-    base_dir = os.path.abspath(os.path.expanduser(args['--base']))
-    lkhan_dir = os.path.join(base_dir, KHAN_CONTENT_STATIC)
-
+    base_dir = CONFIG['BASE_DIR'] = os.path.join(os.path.abspath(os.path.expanduser(args['--base'])),
+                                                        CONFIG['STATIC_CONTENT_DIR'])
     if args['serve']:
         # Print connect info. Get IP of interface of default gateway if host IP is 0.0.0.0
         host_ip = args['--host']
@@ -89,23 +88,22 @@ def main():
         print(connect_info_sep)
         print('(Press CTRL+C to quit)')
 
-        set_khan_base_path(lkhan_dir)
         app.run(host=args['--host'], port=args['--port'])
     elif args['clean']:
         try:
-            shutil.rmtree(lkhan_dir)
+            shutil.rmtree(base_dir)
         except OSError:
             print('Nothing to clean')
     else:
         # get / create base dir
-        if not os.path.exists(lkhan_dir):
+        if not os.path.exists(base_dir):
             try:
-                os.makedirs(lkhan_dir)
+                os.makedirs(base_dir)
             except OSError as oe:
                 print(oe)
                 sys.exit(oe.errno)
 
-        loader = KhanLoader(lkhan_dir, KHAN_CONTENT_STATIC, language=args['--lang'],
+        loader = KhanLoader(base_dir, CONFIG['STATIC_CONTENT_DIR'], language=args['--lang'],
                             media_only=args['--media-only'])
         try:
             return loader.load(args['<topic>'])

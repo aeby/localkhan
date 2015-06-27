@@ -19,5 +19,9 @@ EX_USAGE = 64
 EX_UNAVAILABLE = 69
 
 # Content prefix
-KHAN_CONTENT_STATIC = 'static/khan'
-ASSET_FOLDER = 'assets'
+CONFIG = {
+    'STATIC_CONTENT_DIR': 'static/khan',
+    'ASSET_DIR': 'assets'
+}
+
+

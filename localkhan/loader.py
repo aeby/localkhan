@@ -14,11 +14,12 @@ import time
 
 from clint.textui import progress
 
-from localkhan import EX_OK, ASSET_FOLDER
+from localkhan import EX_OK, CONFIG
+from pytube import YouTube
 import re
 import os
 import requests
-from requests.exceptions import InvalidSchema, RequestException
+from requests.exceptions import RequestException, InvalidSchema
 
 MAX_CONNECTION_RETRIES = 5
 MAX_DOWNLOAD_RETRIES = 10
@@ -28,8 +29,13 @@ KIND_VIDEO = 'Video'
 KIND_EXERCISE = 'Exercise'
 TYPE_VIDEO = 'v'
 TYPE_EXERCISE = 'e'
-MEDIA_URL_RE = re.compile(
-    'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\.(?:png|gif|jpeg|jpg|svg)')
+VIDEO_FORMAT = 'mp4'
+
+IMAGE_URL_RE = re.compile(
+    'http[s]?://ka-perseus-(?:images|graphie)\.s3\.amazonaws.com/(?:[a-zA-Z]|[0-9])+\.(?:png|gif|jpeg|jpg|svg)')
+
+GRAPHIE_URL_RE = re.compile(
+    'web\+graphie://ka-perseus-graphie\.s3\.amazonaws\.com/(?:[a-zA-Z]|[0-9])+')
 
 
 class KhanLoaderError(Exception):
@@ -51,14 +57,16 @@ class KhanLoader(object):
         if not self.base_url.startswith('/'):
             self.base_url = '/' + self.base_url
         self.base_path = base_path
-        self.asset_url = base_url + '/' + ASSET_FOLDER
-        self.asset_path = os.path.join(base_path, ASSET_FOLDER)
+        self.asset_url = base_url + '/' + CONFIG['ASSET_DIR']
+        self.asset_path = os.path.join(base_path, CONFIG['ASSET_DIR'])
         self.media_only = media_only
 
         # setup session and connection retries
         adapter = requests.adapters.HTTPAdapter(max_retries=MAX_CONNECTION_RETRIES)
         self.session = requests.Session()
         self.session.mount('http://', adapter)
+
+        self.yt = YouTube()
 
         # create asset dir
         if not os.path.exists(self.asset_path):
@@ -115,8 +123,12 @@ class KhanLoader(object):
 
         video_store = {}
         exercise_store = {}
+        assets = []
 
-        assets = set()
+        def add_asset(asset):
+            # add asset only if name and type are unique
+            if not any(a for a in assets if a['uri'] == asset['uri'] and a['type'] == asset['type']):
+                assets.append(asset)
 
         main_topic = self.get_topic(path_structure[0])
 
@@ -147,10 +159,12 @@ class KhanLoader(object):
                     tutorial_content_data['id'] = tutorial_content['id']
 
                     if tutorial_content['kind'] == KIND_VIDEO:
-                        video_url = self.get_video(tutorial_content_data['id'])['download_urls']['mp4']
-                        # extract video file name from url
-                        video_store[tutorial_content_data['id']] = self.asset_url + '/' + video_url.split('/')[-1]
-                        assets.add(video_url.replace('https://', 'http://'))
+                        video_id = self.get_video(tutorial_content_data['id'])['translated_youtube_id']
+                        video_store[tutorial_content_data['id']] = self.asset_url + '/' + video_id + '.mp4'
+                        add_asset({
+                            'type': TYPE_VIDEO,
+                            'uri': video_id
+                        })
                         tutorial_content_data['type'] = TYPE_VIDEO
                     elif tutorial_content['kind'] == KIND_EXERCISE:
                         exercise = self.get_exercise(tutorial_content_data['id'])
@@ -165,16 +179,35 @@ class KhanLoader(object):
                             assessment = self.get_assessment_items(assessment_item['id'])
 
                             item_data = assessment['item_data']
-                            for media_url in set(MEDIA_URL_RE.findall(item_data)):
-                                new_url = self.asset_url + '/' + media_url.split('/')[-1]
-                                item_data = item_data.replace(media_url, new_url)
-                                assets.add(media_url.replace('https://', 'http://'))
+
+                            for image_url in set(IMAGE_URL_RE.findall(item_data)):
+                                local_img_url = self.asset_url + '/' + image_url.split('/')[-1]
+                                item_data = item_data.replace(image_url, local_img_url)
+                                add_asset({
+                                    'type': TYPE_EXERCISE,
+                                    'uri': image_url.replace('https://', 'http://')
+                                })
+
+                            for graphie_url in set(GRAPHIE_URL_RE.findall(item_data)):
+                                graphie_id = graphie_url.split('/')[-1]
+                                local_graphie_url = 'web+graphie://{{host}}/' + self.asset_url + '/' + graphie_id
+                                item_data = item_data.replace(graphie_url, local_graphie_url)
+                                add_asset({
+                                    'type': TYPE_EXERCISE,
+                                    'uri': 'http://ka-perseus-graphie.s3.amazonaws.com/' + graphie_id + '.svg'
+                                })
+                                add_asset({
+                                    'type': TYPE_EXERCISE,
+                                    'uri': 'http://ka-perseus-graphie.s3.amazonaws.com/' + graphie_id + '-data.json'
+                                })
 
                             exercise_store[tutorial_content_data['id']].append(json.loads(item_data))
 
                         tutorial_content_data['type'] = TYPE_EXERCISE
 
-                    tutorial_data['tutorialContents'].append(tutorial_content_data)
+                    # only append if it was a video or exercise
+                    if tutorial_content['kind'] in [KIND_EXERCISE, KIND_VIDEO]:
+                        tutorial_data['tutorialContents'].append(tutorial_content_data)
 
                 topic_data['tutorials'].append(tutorial_data)
 
@@ -202,9 +235,9 @@ class KhanLoader(object):
                 m.update(buf)
         return m.hexdigest()
 
-    def _download_file(self, url):
+    def _download_exercise_media(self, url):
         """
-        Download given resource if not present in ASSET_FOLDER or md5sum in ETAG doesn't match.
+        Download given resource if not present in ASSET_DIR or md5sum in ETAG doesn't match.
         Retry to download MAX_DOWNLOAD_RETRIES times with a delay
         of DOWNLOAD_RETRY_DELAY seconds if status code is not 200.
 
@@ -229,8 +262,8 @@ class KhanLoader(object):
                                 break
                     else:
                         raise RequestException(response=response)
-                except RequestException as re:
-                    print('Retry {0}: {1}'.format(url, re))
+                except IOError as ie:
+                    print('Retry {0}: {1}'.format(url, ie))
                     retry += 1
                     time.sleep(DOWNLOAD_RETRY_DELAY)
                     continue
@@ -247,8 +280,8 @@ class KhanLoader(object):
                                 f.write(chunk)
                                 f.flush()
                         return
-            except RequestException as re:
-                print('Retry {0}: {1}'.format(url, re))
+            except IOError as ie:
+                print('Retry {0}: {1}'.format(url, ie))
                 retry += 1
                 time.sleep(DOWNLOAD_RETRY_DELAY)
                 continue
@@ -257,34 +290,55 @@ class KhanLoader(object):
             print('Unable to load resource at {0}: {1}'.format(url, r.content))
 
     def load(self, path):
-        assets_file_path = os.path.join(self.base_path, 'assets.json')
+        assets_path = os.path.join(self.base_path, 'assets.json')
+
         if self.media_only:
-            with open(assets_file_path) as assets_file:
+            with open(assets_path) as assets_file:
                 assets = json.load(assets_file)
         else:
             print('Downloading topics...')
             assets = self._load_structure(path)
 
             # save assets for later media download and cache manifest creation
-            with open(assets_file_path, 'w') as assets_file:
-                json.dump(list(assets), assets_file)
+            with open(assets_path, 'w') as assets_file:
+                json.dump(assets, assets_file)
 
-        print('Downloading media assets...')
-        for media_file in progress.bar(assets):
-            try:
-                self._download_file(media_file)
-            except InvalidSchema as ins:
-                print('InvalidSchema error({0}): {1}'.format(ins.errno, ins.strerror))
+        print('Downloading assets ...')
+
+        for asset in progress.bar(assets):
+            if asset['type'] == TYPE_EXERCISE:
+                try:
+                    self._download_exercise_media(asset['uri'])
+                except InvalidSchema as ins:
+                    print('InvalidSchema error({0}): {1}'.format(ins.errno, ins.strerror))
+            elif asset['type'] == TYPE_VIDEO:
+                retry = 0
+                while retry < MAX_DOWNLOAD_RETRIES:
+                    try:
+                        video = os.path.join(self.asset_path, asset['uri'] + '.' + VIDEO_FORMAT)
+                        if not os.path.isfile(video):
+                            self.yt.url = 'http://www.youtube.com/watch?v=' + asset['uri']
+                            video = self.yt.get(extension=VIDEO_FORMAT, resolution='360p', profile='Baseline')
+                            video.filename = asset['uri']
+                            video.download(self.asset_path)
+                        break
+                    except IOError as ue:
+                        print('Retry {0}: {1}'.format(self.yt.url, ue))
+                        retry += 1
+                        time.sleep(DOWNLOAD_RETRY_DELAY)
+                        continue
+
+                if retry == MAX_DOWNLOAD_RETRIES:
+                    print('Unable to load resource at {0}: {1}'.format(self.yt.url, asset['uri']))
 
         self.session.close()
-
         return EX_OK
 
 
 def test():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     loader = KhanLoader(os.path.join(base_dir, 'static/khan'), '/static/khan', language='es')
-    loader.load('early-math/cc-early-math-counting-topic/cc-early-math-counting')
+    loader.load('arithmetic/fractions/Adding_and_subtracting_fractions')
 
 
 if __name__ == '__main__':

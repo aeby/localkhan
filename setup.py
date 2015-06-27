@@ -27,7 +27,8 @@ setup(
         'schema==0.3.1',
         'clint==0.4.1',
         'Flask==0.10.1',
-        'netifaces==0.10.4'
+        'netifaces==0.10.4',
+        'pytube==0.2.0'
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
