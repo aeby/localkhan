@@ -201,7 +201,13 @@ class KhanLoader(object):
                                     'uri': 'http://ka-perseus-graphie.s3.amazonaws.com/' + graphie_id + '-data.json'
                                 })
 
-                            exercise_store[tutorial_content_data['id']].append(json.loads(item_data))
+                            # Load item_data as json and set answer area options content to empty string.
+                            # Not sure if this field is used anymore as it is mostly empty and
+                            # only partially translated.
+                            item_data_json = json.loads(item_data)
+                            if 'content' in item_data_json['answerArea']['options']:
+                                item_data_json['answerArea']['options']['content'] = ''
+                            exercise_store[tutorial_content_data['id']].append(item_data_json)
 
                         tutorial_content_data['type'] = TYPE_EXERCISE
 
@@ -287,7 +293,7 @@ class KhanLoader(object):
                 continue
 
         if retry == MAX_DOWNLOAD_RETRIES:
-            print('Unable to load resource at {0}: {1}'.format(url, r.content))
+            print('Unable to load resource at {0}'.format(url))
 
     def load(self, path):
         assets_path = os.path.join(self.base_path, 'assets.json')

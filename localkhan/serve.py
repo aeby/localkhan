@@ -36,10 +36,10 @@ def get_manifest():
 
     with open(os.path.join(CONFIG['BASE_DIR'], 'assets.json')) as assets_file:
         for asset in json.load(assets_file):
-            if asset['type'] == TYPE_EXERCISE and 0:
+            if asset['type'] == TYPE_EXERCISE:
                 assets.append(
                     os.path.join(CONFIG['STATIC_CONTENT_DIR'], CONFIG['ASSET_DIR'], asset['uri'].split('/')[-1]))
-            elif asset['type'] == TYPE_VIDEO and 0:
+            elif asset['type'] == TYPE_VIDEO:
                 assets.append(
                     os.path.join(CONFIG['STATIC_CONTENT_DIR'], CONFIG['ASSET_DIR'], asset['uri'] + '.' + VIDEO_FORMAT))
 
