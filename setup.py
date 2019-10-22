@@ -26,7 +26,7 @@ setup(
         'docopt==0.6.2',
         'schema==0.3.1',
         'clint==0.4.1',
-        'Flask==0.10.1',
+        'Flask==1.0',
         'netifaces==0.10.4',
         'pytube==0.2.0'
     ],
